@@ -1,0 +1,132 @@
+/*Author: Jonathon Bryant
+  Date: 3/27/17
+  This is a program that uses the sqlite3 library to create a command line
+  prompt to edit a database with, using sql statements. Some of the sqlite3
+  commands are wraped in the Database.h file for convenience and shorter
+  main program*/
+  
+#include<iostream>
+#include<string>
+#include "sqlite3.h"
+#include "Database.h"
+
+using std::cout;
+using std::string;
+
+int main(){
+    string database;
+    sqlite3 *db; //Database object
+    
+    cout << "What database do you want to open?\n";
+    std::cin >> database;
+    const char * datab = database.c_str();
+    
+    int rc = sqlite3_open(datab, &db); //opens database
+    rc = error(rc, db);
+    
+    string sql = "";
+    getline(std::cin, sql);
+    
+    while(sql != "exit"){
+        cout << "SqlCommand>> ";
+        getline(std::cin, sql);
+        rc = executeD(sql, db, rc);
+    }
+    
+    sqlite3_close(db);
+    
+    return 0;
+}
+
+/*Author: Jonathon Bryant
+  Date: 3/27/17
+  This header file is a wrapper for some of the functions in the
+  sqlite3 library. It also holds the display function for one of 
+  the sqlite3 functions that takes it as a parameter in order to
+  print out the table after executing the sql command.*/
+
+#include<iostream>
+#include<string>
+#include "sqlite3.h"
+
+using std::cout;
+using std::string;
+
+//Function for displaying SQL statement
+static int callback(void *data, int argc, char **argv, char **azColName){
+  
+  string info;
+  
+   for(int i = 0; i < argc; i++){
+        info = (argv[i] ? argv[i] : "NULL");
+        cout << azColName[i] << ": " << info << '\t';
+   }
+   cout << '\n';
+   
+   return 0;
+}
+
+//checking if database will open
+int error(int rc, sqlite3 *db){
+    if(rc != SQLITE_OK){
+        cout << "Cannot open database: " << sqlite3_errmsg(db) << '\n';
+        sqlite3_close(db);
+        return 1;
+    }
+    return rc;
+
+}
+
+//Exectues sql statement
+int executeD(string sql, sqlite3 *db, int rc){
+    const char * csql = sql.c_str();
+    char *err_msg = 0;
+    
+    if(sql != "exit"){
+    rc = sqlite3_exec(db, csql, callback, 0, &err_msg);
+    
+    //checks for SQL error
+    if(rc != SQLITE_OK){
+        cout << "SQL error: " << err_msg << '\n';
+        sqlite3_free(err_msg);
+        sqlite3_close(db);
+        return 1;
+    }else{
+        return rc;
+    }
+    }
+}
+
+//OUTPUT
+What database do you want to open?
+demo.db
+SqlCommand>> select ename from emp;
+ENAME: KING
+ENAME: BLAKE
+ENAME: CLARK
+ENAME: JONES
+ENAME: MARTIN
+ENAME: ALLEN
+ENAME: TURNER
+ENAME: JAMES
+ENAME: WARD
+ENAME: FORD
+ENAME: SMITH
+ENAME: SCOTT
+ENAME: ADAMS
+ENAME: MILLER
+SqlCommand>> select ename, sal from emp;
+ENAME: KING     SAL: 6000
+ENAME: BLAKE    SAL: 2850
+ENAME: CLARK    SAL: 2450
+ENAME: JONES    SAL: 2975
+ENAME: MARTIN   SAL: 1250
+ENAME: ALLEN    SAL: 1600
+ENAME: TURNER   SAL: 1500
+ENAME: JAMES    SAL: 950
+ENAME: WARD     SAL: 1250
+ENAME: FORD     SAL: 3000
+ENAME: SMITH    SAL: 800
+ENAME: SCOTT    SAL: 3000
+ENAME: ADAMS    SAL: 1100
+ENAME: MILLER   SAL: 1300
